@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>七段数码管动画</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #10151d;
+        color: #fff;
+        font-family: Arial, sans-serif;
+    }
+
+    h2 {
+        color: #00eaff;
+        letter-spacing: 3px;
+    }
+
+    .display {
+        width: 220px;
+        height: 340px;
+        padding: 25px;
+        background: #080b10;
+        border: 2px solid #293744;
+        border-radius: 20px;
+        box-shadow: 0 0 30px #00eaff18;
+    }
+
+    .digit {
+        position: relative;
+        width: 170px;
+        height: 290px;
+    }
+
+    .seg {
+        position: absolute;
+        background: #252a30;
+        transition: background .18s, box-shadow .18s;
+    }
+
+    .seg.on {
+        background: #ff3030;
+        box-shadow: 0 0 8px #ff3030, 0 0 22px #ff2020;
+    }
+
+    /* 横向灯段：a、g、d */
+    .a, .g, .d {
+        width: 90px;
+        height: 15px;
+        left: 40px;
+        clip-path: polygon(10% 0, 90% 0, 100% 50%,
+                           90% 100%, 10% 100%, 0 50%);
+    }
+
+    .a { top: 0; }
+    .g { top: 137px; }
+    .d { bottom: 0; }
+
+    /* 纵向灯段：b、c、e、f */
+    .b, .c, .e, .f {
+        width: 15px;
+        height: 115px;
+        clip-path: polygon(0 8%, 50% 0, 100% 8%,
+                           100% 92%, 50% 100%, 0 92%);
+    }
+
+    .f { left: 25px; top: 10px; }
+    .b { right: 25px; top: 10px; }
+    .e { left: 25px; bottom: 10px; }
+    .c { right: 25px; bottom: 10px; }
+
+    .controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    button {
+        padding: 10px 20px;
+        border: 1px solid #00eaff;
+        border-radius: 8px;
+        background: #172630;
+        color: #00eaff;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #00eaff;
+        color: #10151d;
+    }
+
+    .info {
+        margin-top: 18px;
+        color: #9eabb8;
+    }
+
+    .number {
+        color: #ff4545;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    label {
+        margin-top: 20px;
+        color: #c3d0dc;
+    }
+
+    input {
+        vertical-align: middle;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>7-SEGMENT DISPLAY</h2>
+
+<div class="display">
+    <div class="digit" id="digit">
+        <div class="seg a" data-seg="a"></div>
+        <div class="seg b" data-seg="b"></div>
+        <div class="seg c" data-seg="c"></div>
+        <div class="seg d" data-seg="d"></div>
+        <div class="seg e" data-seg="e"></div>
+        <div class="seg f" data-seg="f"></div>
+        <div class="seg g" data-seg="g"></div>
+    </div>
+</div>
+
+<div class="info">
+    当前数字：<span class="number" id="number">0</span>
+</div>
+
+<div class="controls">
+    <button onclick="prev()">上一个</button>
+    <button onclick="toggle()">暂停 / 播放</button>
+    <button onclick="next()">下一个</button>
+</div>
+
+<label>
+    切换速度：
+    <input id="speed" type="range"
+           min="200" max="2000" step="100" value="1000">
+    <span id="speedText">1000 ms</span>
+</label>
+
+<script>
+    // 七段数码管编码：abcdefg
+    // 1 表示点亮，0 表示熄灭
+    const digits = {
+        0: "1111110",
+        1: "0110000",
+        2: "1101101",
+        3: "1111001",
+        4: "0110011",
+        5: "1011011",
+        6: "1011111",
+        7: "1110000",
+        8: "1111111",
+        9: "1111011"
+    };
+
+    const segments = [...document.querySelectorAll(".seg")];
+    const numberText = document.getElementById("number");
+    const speedInput = document.getElementById("speed");
+    const speedText = document.getElementById("speedText");
+
+    let current = 0;
+    let timer = null;
+    let playing = true;
+
+    function showDigit(n) {
+        current = (n + 10) % 10;
+
+        const code = digits[current];
+
+        segments.forEach((seg, index) => {
+            seg.classList.toggle("on", code[index] === "1");
+        });
+
+        numberText.textContent = current;
+    }
+
+    function next() {
+        showDigit(current + 1);
+    }
+
+    function prev() {
+        showDigit(current - 1);
+    }
+
+    function start() {
+        clearInterval(timer);
+        timer = setInterval(next, Number(speedInput.value));
+        playing = true;
+    }
+
+    function toggle() {
+        if (playing) {
+            clearInterval(timer);
+            playing = false;
+        } else {
+            start();
+        }
+    }
+
+    speedInput.addEventListener("input", () => {
+        speedText.textContent = speedInput.value + " ms";
+
+        if (playing) {
+            start();
+        }
+    });
+
+    // 初始化并自动播放
+    showDigit(0);
+    start();
+</script>
+
+</body>
+</html>
